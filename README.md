@@ -1,3 +1,12 @@
+---
+title: Spam Message Classifier 📧
+emoji: 🤖
+colorFrom: green
+colorTo: blue
+sdk: streamlit
+app_file: app.py
+pinned: false
+---
 
 ## ⚙️ CI/CD Process (with GitHub Actions)
 
