@@ -3,81 +3,82 @@
 import streamlit as st
 import pickle
 import string
-# import nltk
+# import nltk # Currently not used directly, might be within the pipeline
 # from nltk.corpus import stopwords
 # from nltk.stem import PorterStemmer
-import numpy as np # test_model_classes içinde kullanıldıysa import edilmeli
+import numpy as np # Needed for type checking in one of the tests if added later
+import os # Used in one of the tests if added later
 
-# --- ZIMANÊ RÛPELA Sazkirin (Divê Fermana Streamlit a YEKEM be) ---
-st.set_page_config(page_title="Dabeşkerê Spamê", page_icon="📧") # Rûpel Sernav: Spam Classifier -> Dabeşkerê Spamê
+# --- PAGE CONFIGURATION (MUST be the first Streamlit command) ---
+st.set_page_config(page_title="Spam Classifier", page_icon="📧")
 
-# --- Barkirina Modelê ---
-MODEL_PATH = 'spam_classifier.pkl'
+# --- Model Loading ---
+MODEL_PATH = 'spam_classifier.pkl' # Name of the model file
 
-@st.cache_resource
+@st.cache_resource # Prevent reloading the model repeatedly
 def load_model(path):
-    """Modela pickle ji rêça diyarkirî bar dike."""
+    """Loads the pickle model from the given path."""
     try:
         with open(path, 'rb') as file:
             model = pickle.load(file)
         return model
     except FileNotFoundError:
-        st.error(f"Çewtî: Pelê modelê '{path}' nehat dîtin. Ji kerema xwe piştrast bikin ku pel di depoyê de ye û nav rast hatiye nivîsandin.")
+        st.error(f"Error: Model file '{path}' not found. Please ensure the file exists in the repository and the name is correct.")
         return None
     except ModuleNotFoundError as e:
-        st.error(f"Çewtî: Pirtûkxaneya pêwîst ji bo barkirina modelê nehat dîtin: {e}. Pelê 'requirements.txt' kontrol bikin (mînak: scikit-learn).")
+        st.error(f"Error: A required library to load the model was not found: {e}. Check 'requirements.txt' (e.g., scikit-learn).")
         return None
     except Exception as e:
-        st.error(f"Di dema barkirina modelê de çewtiyek nediyar çêbû: {e}")
+        st.error(f"An unexpected error occurred while loading the model: {e}")
         return None
 
-# Modelê bar bike
+# Load the model
 model = load_model(MODEL_PATH)
 
-# --- Navrûya Bikarhêner a Streamlit ---
+# --- Streamlit Interface ---
 
-st.title("📧 Dabeşkerê Peyamên Spam") # Sernav: Spam Mesaj Sınıflandırıcı -> Dabeşkerê Peyamên Spam
-st.write("Ji bo dabeşkirina ka peyama we spam e an na, qada nivîsê ya jêrîn bikar bînin.") # Açıklama metni
+st.title("📧 Spam Message Classifier")
+st.write("Enter your message below to classify it as Spam or Ham.")
 
-# --- Kontrola Barkirina Modelê ---
+# --- Model Loading Check ---
 if model is None:
-    st.warning("Ji ber ku model nehat barkirin, sepan niha nayê bikaranîn. Ji kerema xwe paşê dîsa biceribînin an bi rêveberê re têkilî daynin.")
-    st.stop()
+    st.warning("The application is currently unavailable because the model could not be loaded. Please try again later or contact the administrator.")
+    st.stop() # Stops execution of the script
 
-# --- Têketina Bikarhêner ---
-message_input = st.text_area(
-    "Peyama xwe li vir binivîsin:", # Metin alanı etiketi
-    height=150,
-    placeholder="Mînak: Click this link to win a prize!" # Placeholder metni (İngilizce bırakmak daha iyi olabilir, model İngilizce bekliyor)
-)
+# --- User Input ---
+message_input = st.text_area("Enter your message here:", height=150, placeholder="Example: Click this link to win a prize!")
 
-# --- Bişkoja Dabeşkirinê û Mantiq ---
-classify_button = st.button("Peyamê Dabeş Bike") # Buton metni: Mesajı Sınıflandır -> Peyamê Dabeş Bike
+# --- Classification Button and Logic ---
+classify_button = st.button("Classify Message")
 
 if classify_button:
     if message_input and message_input.strip():
         try:
-            # Model navnîşanek an rêzek hêvî dike, peyamek yekane têxe navnîşanê
             prediction = model.predict([message_input])
             result = prediction[0]
 
-            st.subheader("Encam:") # Alt başlık: Sonuç -> Encam
+            st.subheader("Result:")
             if result == 'spam':
-                st.error(f"🚨 Ev peyam wekî **SPAM** hate dabeş kirin.") # Spam sonucu
+                st.error(f"🚨 This message was classified as **SPAM**.")
             else:
-                st.success(f"✅ Ev peyam wekî **HAM** (Ne Spam) hate dabeş kirin.") # Ham sonucu
+                st.success(f"✅ This message was classified as **HAM** (Not Spam).")
+
+            # --- BALONLARI BURADA EKLEYELİM ---
+            # Sınıflandırma sonucu gösterildikten hemen sonra çalışır.
+            st.balloons()
 
         except Exception as e:
-            st.error(f"Di dema dabeşkirinê de çewtiyek çêbû: {e}") # Sınıflandırma hatası
+            st.error(f"An error occurred during classification: {e}")
+            st.error("Please check your input or try again later.")
     else:
-        st.warning("Ji kerema xwe ji bo dabeşkirinê peyamek binivîsin.") # Boş mesaj uyarısı
+        st.warning("Please enter a message to classify.")
 
-
-# --- Sidebar (Milê Çepê) ---
-st.sidebar.header("Derbarê Sepanê") # Sidebar başlığı: Uygulama Hakkında -> Derbarê Sepanê
+# --- Sidebar ---
+st.sidebar.header("About the App")
 st.sidebar.info(
-    "Ev sepan, bi karanîna modelek fêrbûna makîneyê (TF-IDF + Random Forest) ya ku bi Scikit-learn hatiye perwerde kirin, "
-    "peyamên nivîsê wekî 'Spam' an 'Ham' dabeş dike."
-) # Sidebar bilgi metni
-st.sidebar.markdown("---")
-st.sidebar.markdown("Kod li ser [GitHub](https://github.com/ridvanyigit/streamlit_hf_projem)ê heye.") # Sidebar link metni
+    "This application classifies text messages as 'Spam' or 'Ham' "
+    "using a machine learning model (TF-IDF + Random Forest) "
+    "trained with Scikit-learn."
+)
+st.sidebar.markdown("---") # Separator line
+st.sidebar.markdown("The code is available on [GitHub](https://github.com/ridvanyigit/streamlit_hf_projem).")
