@@ -1,4 +1,4 @@
-name: Deploy to Hugging Face Spaces
+name: Deploy Streamlit App to Hugging Face Spaces
 
 on:
   push:
@@ -11,37 +11,45 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      - name: Checkout GitHub repository
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Fetch all history for accurate syncing
+          fetch-depth: 0
+          lfs: true
 
-      - name: Clone Target Space Repository
+      - name: Clone Hugging Face Space repository
         env:
-          # Uses your GitHub username/repo name, assuming they match HF username/Space name
-          TARGET_SPACE_URL: https://user:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/${{ github.repository_owner }}/${{ github.event.repository.name }}
+          TARGET_HF_SPACE_URL: https://user:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/${{ github.repository_owner }}/${{ github.event.repository.name }}
         run: |
-          git clone "$TARGET_SPACE_URL" hf_space
+          sudo apt-get update && sudo apt-get install -y git-lfs
+          git lfs install --system --skip-repo
+          git clone "$TARGET_HF_SPACE_URL" hf_space
           cd hf_space
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
 
-      - name: Sync Files to Space Repo
+      - name: Sync files to Space repository
         run: |
           cd hf_space
-          # Clean directory except .git
           find . -path ./.git -prune -o -exec rm -rf {} \; 2>/dev/null || true
-          # Sync using rsync
           rsync -av --delete --exclude='.git/' --exclude='.github/' --exclude='hf_space/' $GITHUB_WORKSPACE/ ./
+          if [ -f "$GITHUB_WORKSPACE/.gitattributes" ]; then
+            cp "$GITHUB_WORKSPACE/.gitattributes" .
+          fi
 
-      - name: Commit and Push to Space
+      - name: Commit and Push to Hugging Face Space
         run: |
           cd hf_space
+          MODEL_EXTENSION="spam_classifier.pkl" # Model uzantınız farklıysa değiştirin
+          git lfs track "*.${MODEL_EXTENSION}"
           git add .
-          # Commit and push only if there are changes
+          if [ -f ".gitattributes" ]; then
+            git add .gitattributes --force
+          fi
           if ! git diff-index --quiet HEAD; then
             git commit -m "Update from GitHub Action ${{ github.sha }}"
-            git push origin main # Assumes the default branch on Space is 'main'
+            git push origin main
+            echo "Push successful!"
           else
-            echo "No changes to push."
+            echo "No changes detected in hf_space to commit."
           fi
