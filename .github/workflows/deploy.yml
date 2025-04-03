@@ -1,0 +1,47 @@
+name: Deploy to Hugging Face Spaces
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy-to-space:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Fetch all history for accurate syncing
+
+      - name: Clone Target Space Repository
+        env:
+          # Uses your GitHub username/repo name, assuming they match HF username/Space name
+          TARGET_SPACE_URL: https://user:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/${{ github.repository_owner }}/${{ github.event.repository.name }}
+        run: |
+          git clone "$TARGET_SPACE_URL" hf_space
+          cd hf_space
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+
+      - name: Sync Files to Space Repo
+        run: |
+          cd hf_space
+          # Clean directory except .git
+          find . -path ./.git -prune -o -exec rm -rf {} \; 2>/dev/null || true
+          # Sync using rsync
+          rsync -av --delete --exclude='.git/' --exclude='.github/' --exclude='hf_space/' $GITHUB_WORKSPACE/ ./
+
+      - name: Commit and Push to Space
+        run: |
+          cd hf_space
+          git add .
+          # Commit and push only if there are changes
+          if ! git diff-index --quiet HEAD; then
+            git commit -m "Update from GitHub Action ${{ github.sha }}"
+            git push origin main # Assumes the default branch on Space is 'main'
+          else
+            echo "No changes to push."
+          fi
