@@ -3,86 +3,81 @@
 import streamlit as st
 import pickle
 import string
-# import nltk # Şu anda direkt kullanılmıyor, pipeline içinde olabilir
+# import nltk
 # from nltk.corpus import stopwords
 # from nltk.stem import PorterStemmer
+import numpy as np # test_model_classes içinde kullanıldıysa import edilmeli
 
-# --- SAYFA YAPILANDIRMASI (İLK Streamlit Komutu OLMALI) ---
-# Bu satır, diğer tüm st.* komutlarından önce gelmelidir.
-st.set_page_config(page_title="Spam Classifier", page_icon="📧")
+# --- ZIMANÊ RÛPELA Sazkirin (Divê Fermana Streamlit a YEKEM be) ---
+st.set_page_config(page_title="Dabeşkerê Spamê", page_icon="📧") # Rûpel Sernav: Spam Classifier -> Dabeşkerê Spamê
 
-# --- Model Yükleme ---
-MODEL_PATH = 'spam_classifier.pkl' # Model dosyasının adı
+# --- Barkirina Modelê ---
+MODEL_PATH = 'spam_classifier.pkl'
 
-@st.cache_resource # Modelin tekrar tekrar yüklenmesini önle
+@st.cache_resource
 def load_model(path):
-    """Verilen yoldan pickle modelini yükler."""
+    """Modela pickle ji rêça diyarkirî bar dike."""
     try:
         with open(path, 'rb') as file:
-            # Pickle dosyasının sklearn.pipeline.Pipeline içerdiğini varsayıyoruz
-            # Eğer sadece model ise ve TF-IDF ayrıysa, burası değişebilir.
-            # Ancak notebook'taki kod clf (pipeline) olarak kaydediyor.
             model = pickle.load(file)
         return model
     except FileNotFoundError:
-        # Model yüklenemezse hata göster
-        st.error(f"Hata: Model dosyası '{path}' bulunamadı. Lütfen dosyanın depoda olduğundan ve adının doğru yazıldığından emin olun.")
+        st.error(f"Çewtî: Pelê modelê '{path}' nehat dîtin. Ji kerema xwe piştrast bikin ku pel di depoyê de ye û nav rast hatiye nivîsandin.")
         return None
     except ModuleNotFoundError as e:
-        st.error(f"Hata: Modeli yüklemek için gerekli kütüphane bulunamadı: {e}. 'requirements.txt' dosyasını kontrol edin (örn: scikit-learn).")
+        st.error(f"Çewtî: Pirtûkxaneya pêwîst ji bo barkirina modelê nehat dîtin: {e}. Pelê 'requirements.txt' kontrol bikin (mînak: scikit-learn).")
         return None
     except Exception as e:
-        st.error(f"Model yüklenirken beklenmedik bir hata oluştu: {e}")
+        st.error(f"Di dema barkirina modelê de çewtiyek nediyar çêbû: {e}")
         return None
 
-# Modeli yükle
+# Modelê bar bike
 model = load_model(MODEL_PATH)
 
-# --- Streamlit Arayüzü ---
+# --- Navrûya Bikarhêner a Streamlit ---
 
-st.title("📧 Spam Mesaj Sınıflandırıcı")
-st.write("Girdiğiniz mesajın spam olup olmadığını sınıflandırmak için aşağıdaki metin alanını kullanın.")
+st.title("📧 Dabeşkerê Peyamên Spam") # Sernav: Spam Mesaj Sınıflandırıcı -> Dabeşkerê Peyamên Spam
+st.write("Ji bo dabeşkirina ka peyama we spam e an na, qada nivîsê ya jêrîn bikar bînin.") # Açıklama metni
 
-# --- Model Yükleme Kontrolü ---
-# Eğer model başarılı bir şekilde yüklenmediyse, uygulamanın geri kalanını çalıştırma.
+# --- Kontrola Barkirina Modelê ---
 if model is None:
-    st.warning("Model yüklenemediği için uygulama şu anda kullanılamıyor. Lütfen daha sonra tekrar deneyin veya yönetici ile iletişime geçin.")
-    st.stop() # Scriptin geri kalanının çalışmasını durdurur
+    st.warning("Ji ber ku model nehat barkirin, sepan niha nayê bikaranîn. Ji kerema xwe paşê dîsa biceribînin an bi rêveberê re têkilî daynin.")
+    st.stop()
 
-# --- Kullanıcı Girdisi ---
-message_input = st.text_area("Mesajınızı buraya girin:", height=150, placeholder="Örnek: Click this link to win a prize!")
+# --- Têketina Bikarhêner ---
+message_input = st.text_area(
+    "Peyama xwe li vir binivîsin:", # Metin alanı etiketi
+    height=150,
+    placeholder="Mînak: Click this link to win a prize!" # Placeholder metni (İngilizce bırakmak daha iyi olabilir, model İngilizce bekliyor)
+)
 
-# --- Sınıflandırma Butonu ve Mantığı ---
-classify_button = st.button("Mesajı Sınıflandır")
+# --- Bişkoja Dabeşkirinê û Mantiq ---
+classify_button = st.button("Peyamê Dabeş Bike") # Buton metni: Mesajı Sınıflandır -> Peyamê Dabeş Bike
 
 if classify_button:
-    # Girdinin boş olup olmadığını kontrol et
     if message_input and message_input.strip():
         try:
-            # Model bir liste veya dizi bekler, tek bir mesajı listeye koy
-            # Pipeline (clf) hem TF-IDF dönüşümünü hem de sınıflandırmayı yapar.
+            # Model navnîşanek an rêzek hêvî dike, peyamek yekane têxe navnîşanê
             prediction = model.predict([message_input])
-            result = prediction[0] # Tahmin dizisinden ilk sonucu al ('ham' veya 'spam')
+            result = prediction[0]
 
-            st.subheader("Sonuç:")
+            st.subheader("Encam:") # Alt başlık: Sonuç -> Encam
             if result == 'spam':
-                st.error(f"🚨 Bu mesaj **SPAM** olarak sınıflandırıldı.")
+                st.error(f"🚨 Ev peyam wekî **SPAM** hate dabeş kirin.") # Spam sonucu
             else:
-                st.success(f"✅ Bu mesaj **HAM** (Spam Değil) olarak sınıflandırıldı.")
+                st.success(f"✅ Ev peyam wekî **HAM** (Ne Spam) hate dabeş kirin.") # Ham sonucu
 
         except Exception as e:
-            st.error(f"Sınıflandırma sırasında bir hata oluştu: {e}")
-            st.error("Lütfen girdinizi kontrol edin veya daha sonra tekrar deneyin.")
+            st.error(f"Di dema dabeşkirinê de çewtiyek çêbû: {e}") # Sınıflandırma hatası
     else:
-        # Kullanıcı butona bastı ama mesaj girmemişse
-        st.warning("Lütfen sınıflandırmak için bir mesaj girin.")
+        st.warning("Ji kerema xwe ji bo dabeşkirinê peyamek binivîsin.") # Boş mesaj uyarısı
 
-# --- Kenar Çubuğu (Sidebar) ---
-st.sidebar.header("Uygulama Hakkında")
+
+# --- Sidebar (Milê Çepê) ---
+st.sidebar.header("Derbarê Sepanê") # Sidebar başlığı: Uygulama Hakkında -> Derbarê Sepanê
 st.sidebar.info(
-    "Bu uygulama, Scikit-learn kullanılarak eğitilmiş bir "
-    "makine öğrenmesi modeli (TF-IDF + Random Forest) ile "
-    "metin mesajlarını 'Spam' veya 'Ham' olarak sınıflandırır."
-)
-st.sidebar.markdown("---") # Ayırıcı çizgi
-st.sidebar.markdown("Kod [GitHub](https://github.com/ridvanyigit/streamlit_hf_projem)'da bulunmaktadır.") # Kendi repo linkinizi ekleyebilirsiniz
+    "Ev sepan, bi karanîna modelek fêrbûna makîneyê (TF-IDF + Random Forest) ya ku bi Scikit-learn hatiye perwerde kirin, "
+    "peyamên nivîsê wekî 'Spam' an 'Ham' dabeş dike."
+) # Sidebar bilgi metni
+st.sidebar.markdown("---")
+st.sidebar.markdown("Kod li ser [GitHub](https://github.com/ridvanyigit/streamlit_hf_projem)ê heye.") # Sidebar link metni
