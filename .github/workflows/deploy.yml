@@ -1,3 +1,5 @@
+# .github/workflows/deploy.yml
+
 name: Deploy Streamlit App to Hugging Face Spaces
 
 on:
@@ -11,12 +13,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Adım: Kodu Checkout Yap
       - name: Checkout GitHub repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           lfs: true
 
+      # 2. Adım: Python'u Kur
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10' # HF Space ile uyumlu bir versiyon seçin
+
+      # 3. Adım: Bağımlılıkları Yükle
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt # pytest dahil tüm bağımlılıklar yüklenir
+
+      # 4. Adım: Testleri Çalıştır
+      - name: Run tests with pytest
+        run: pytest tests/ # tests/ klasöründeki testleri çalıştırır
+
+      # --- TESTLER BAŞARILI OLURSA DEVAM EDER ---
+
+      # 5. Adım: Hugging Face Space Deposunu Klonla
       - name: Clone Hugging Face Space repository
         env:
           TARGET_HF_SPACE_URL: https://user:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/${{ github.repository_owner }}/${{ github.event.repository.name }}
@@ -28,6 +50,7 @@ jobs:
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
 
+      # 6. Adım: Dosyaları Space Deposuna Kopyala/Eşitle
       - name: Sync files to Space repository
         run: |
           cd hf_space
@@ -37,14 +60,16 @@ jobs:
             cp "$GITHUB_WORKSPACE/.gitattributes" .
           fi
 
+      # 7. Adım: Değişiklikleri Hugging Face Space'e Push Et
       - name: Commit and Push to Hugging Face Space
         run: |
           cd hf_space
-          MODEL_EXTENSION="spam_classifier.pkl" # Model uzantınız farklıysa değiştirin
-          git lfs track "*.${MODEL_EXTENSION}"
+          git lfs install --local # Activate LFS hooks for this clone
+          MODEL_EXTENSION="pkl" # Veya model uzantınız ne ise
+          # git lfs track "*.${MODEL_EXTENSION}" # .gitattributes varsa ve install --local çalıştıysa gerekmeyebilir
           git add .
           if [ -f ".gitattributes" ]; then
-            git add .gitattributes --force
+             git add .gitattributes --force # Ensure it's staged
           fi
           if ! git diff-index --quiet HEAD; then
             git commit -m "Update from GitHub Action ${{ github.sha }}"
