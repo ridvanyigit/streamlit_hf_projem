@@ -63,7 +63,7 @@ if classify_button:
             else:
                 st.success(f"✅ This message was classified as **HAM** (Not Spam).")
 
-            # --- BALONLARI BURADA EKLEYELİM ---
+            # --- BALOONS ---
             # Sınıflandırma sonucu gösterildikten hemen sonra çalışır.
             st.balloons()
 
