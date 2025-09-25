@@ -39,7 +39,7 @@ You can access the live version of the application via the following Hugging Fac
 
 *(Note: It might take a few seconds for the Space to wake up from sleep.)*
 
-## 💻 Code Repository
+## Code Repository
 
 You can access all the source code and configuration files for the project in the following GitHub repository:
 
